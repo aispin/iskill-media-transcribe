@@ -197,23 +197,42 @@ async function vsTranscribe(file, language) {
 /* ---------------- whisper CLI（兜底，且能产带时间戳 srt/json） ---------------- */
 
 export function findWhisperCli() {
-  const cands = [
-    process.env.WHISPER,
-    tryWhich(['mlx_whisper', 'mlx-whisper', 'whisper-cli', 'whisper-cpp', 'whisper']),
+  const direct = process.env.WHISPER
+    || tryWhich(['mlx_whisper', 'mlx-whisper', 'whisper-cli', 'whisper-cpp', 'whisper']);
+  if (direct) return direct;
+  // 非交互 shell 的 PATH 通常不含 venv/pipx 的 bin 目录，补查常见落点
+  const dirs = [
+    process.env.MLX_BIN_DIR,
+    '/Users/lv/.workbuddy/binaries/python/envs/default/bin', // 本机 managed venv（依赖文档化）
+    path.join(os.homedir(), '.local', 'bin'),                 // pipx / pip --user
+    '/opt/homebrew/bin',
   ].filter(Boolean);
-  return cands[0] || null;
+  for (const dir of dirs) {
+    for (const name of ['mlx_whisper', 'mlx-whisper']) {
+      const p = path.join(dir, name);
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return null;
 }
 
 async function viaWhisperCli(bin, file, language, outDir) {
   const base = path.join(outDir, path.basename(file).replace(/\.[^.]+$/, ''));
-  const isMlx = /mlx/i.test(path.basename(bin));
-  const argv = isMlx
+  const name = path.basename(bin);
+  // 三家 CLI 参数体系完全不同，按命令名分流
+  const argv = /mlx/i.test(name)
+    // mlx-whisper：模型用 HuggingFace 仓库名；output-format 部分版本只收单值，只出 json（json 里含 segments+text，足够）
     ? ['--model', process.env.WHISPER_MODEL || 'mlx-community/whisper-large-v3-turbo',
-       '--language', language, '--output-dir', outDir, '--output-format', 'json,txt', file]
-    : ['-m', process.env.WHISPER_MODEL || 'models/ggml-large-v3.bin',
-       '-l', language, '-ojson', '-otxt', '-of', base, file];
+       '--language', language, '--output-dir', outDir, '--output-format', 'json', file]
+    : /whisper-cli|whisper-cpp/i.test(name)
+    // whisper.cpp：ggml 模型文件
+    ? ['-m', process.env.WHISPER_MODEL || 'models/ggml-large-v3.bin',
+       '-l', language, '-oj', '-of', base, file]
+    // openai-whisper：模型名（tiny/base/small/medium/large-v3…），注意用下划线长选项
+    : ['--model', process.env.WHISPER_MODEL || 'medium',
+       '--language', language, '--output_format', 'json', '--output_dir', outDir, file];
   const r = await run(bin, argv, { timeout: 1800000 });
-  const jsonPath = isMlx ? `${base}.json` : `${base}.json`;
+  const jsonPath = `${base}.json`;
   let segments = null; let text = null;
   if (fs.existsSync(jsonPath)) {
     try {
@@ -222,10 +241,10 @@ async function viaWhisperCli(bin, file, language, outDir) {
       segments = normalizeSegments(j.segments || null);
     } catch { /* ignore */ }
   }
-  const txtPath = isMlx ? `${base}.txt` : `${base}.txt`;
+  const txtPath = `${base}.txt`;
   if (!text && fs.existsSync(txtPath)) text = fs.readFileSync(txtPath, 'utf8').trim();
   if (!text && r.ok) text = (r.stdout || '').trim();
-  if (text) return { ok: true, text, segments, engine: path.basename(bin) };
+  if (text) return { ok: true, text, segments, engine: name };
   return { ok: false, error: 'whisper 未产出文本' };
 }
 
