@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+.tmp-audio/
+__pycache__/
+*.part
+.DS_Store
+out/
+weixin_cookies.txt
