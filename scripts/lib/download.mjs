@@ -60,6 +60,13 @@ export async function downloadUrl(url, outDir, opts = {}) {
   if (!ytdlp) return { ok: false, reason: '未找到 yt-dlp（请在 managed Python venv 安装 yt-dlp）' };
   ensureDir(outDir);
 
+  let cookies;
+  try {
+    cookies = cookieArgs(opts);
+  } catch (e) {
+    return { ok: false, reason: e.message };
+  }
+
   let id;
   try {
     id = await resolveId(ytdlp, url, opts);
@@ -76,7 +83,7 @@ export async function downloadUrl(url, outDir, opts = {}) {
     '-o', baseTmpl,
   ];
   if (ff) argv.push('--ffmpeg-location', path.dirname(ff));
-  argv.push(...cookieArgs(opts));
+  argv.push(...cookies);
   argv.push(url);
 
   const attempts = opts.retries ?? 8;
