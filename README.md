@@ -44,7 +44,8 @@ node scripts/video-transcribe.mjs one ./voice.m4a --out ./out
 node scripts/video-transcribe.mjs batch --dir ./videos --out ./out
 
 # 仅某一步
-node scripts/video-transcribe.mjs download  "<url>" --weixin
+node scripts/video-transcribe.mjs download  "<url>" --weixin        # 仅下载泛化、不转写：视频 URL→mp4，音频 URL→mp3
+node scripts/video-transcribe.mjs download --list urls.txt --out ./out   # 批量下载泛化（每行一个 URL）
 node scripts/video-transcribe.mjs audio     ./x.mp4
 node scripts/video-transcribe.mjs transcribe ./x.mp3 --formats srt,json,vtt
 ```

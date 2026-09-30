@@ -9,6 +9,7 @@
 //   - 产物只认最终 .mp4，不靠 startsWith(id) 误认残留。
 //   - 进重试前清掉上次半成品，避免续传/误认损坏文件。
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { findYtDlp, findFfmpeg } from './audio.mjs';
@@ -38,10 +39,16 @@ export async function resolveId(ytdlp, url, opts) {
 
 function cookieArgs(opts) {
   if (opts.weixin) {
-    const f = process.env.WEIXIN_COOKIE_FILE || path.join(process.cwd(), 'weixin_cookies.txt');
-    if (!fs.existsSync(f)) {
-      throw new Error(`--weixin 需要元宝(tencent.com)会话 cookie 文件，未找到：${f}\n` +
-        `导出方式：yt-dlp --cookies-from-browser chrome --cookies ${f} https://example.com\n` +
+    // 解藕约定：cookie 存用户主目录（跨 agent 通用），env 覆盖 > 用户级 > 工作区
+    const candidates = [
+      process.env.WEIXIN_COOKIE_FILE,
+      path.join(os.homedir(), '.iskill-weixin-cookies.txt'),
+      path.join(process.cwd(), 'weixin_cookies.txt'),
+    ].filter(Boolean);
+    const f = candidates.find(p => fs.existsSync(p));
+    if (!f) {
+      throw new Error(`--weixin 需要元宝(tencent.com)会话 cookie 文件，以下位置均未找到：\n  ${candidates.join('\n  ')}\n` +
+        `推荐导出到用户级（跨 agent 通用）：yt-dlp --cookies-from-browser chrome --cookies ~/.iskill-weixin-cookies.txt https://example.com\n` +
         `（先在 Chrome 登录 https://yuanbao.tencent.com 再用微信扫码）`);
     }
     return ['--cookies', f];
@@ -52,8 +59,9 @@ function cookieArgs(opts) {
 }
 
 /**
- * 下载 URL → <outDir>/<id>.mp4。
- * @returns {{ok:boolean, file?:string, id?:string, reason?:string}}
+ * 下载 URL → 泛化为统一格式（视频→mp4，音频→mp3），**不**做转写。
+ * 先探测是否有视频流，再决定泛化目标：有视频→ --remux-video mp4；纯音频→ --extract-audio --audio-format mp3。
+ * @returns {{ok:boolean, file?:string, id?:string, ext?:string, kind?:'video'|'audio', reason?:string}}
  */
 export async function downloadUrl(url, outDir, opts = {}) {
   const ytdlp = findYtDlp();
@@ -75,23 +83,35 @@ export async function downloadUrl(url, outDir, opts = {}) {
   }
   if (!id) return { ok: false, reason: '无法解析视频 id（链接无效或登录态不足）' };
 
+  // 探测是否有视频流 → 决定泛化目标（视频→mp4 / 音频→mp3）
+  let isAudio = false;
+  try {
+    const probe = await run(ytdlp, ['--no-warnings', '--no-playlist', '--print', '%(vcodec)s', ...cookies, url], {
+      timeout: 60000,
+      env: { ...process.env, PATH: ['/opt/homebrew/bin', process.env.PATH || ''].filter(Boolean).join(':') },
+    });
+    const vc = (probe.stdout || '').trim().split(/\r?\n/).pop() || '';
+    isAudio = vc === 'none' || vc === '';
+  } catch { /* 探测失败则按视频处理（→ mp4 仍可用） */ }
+
   const ff = findFfmpeg();
-  const baseTmpl = path.join(outDir, `${id}.%(ext)s`);
-  const argv = [
-    '--no-playlist', '--no-warnings', '--quiet', '--no-progress',
-    '--remux-video', 'mp4',
-    '-o', baseTmpl,
-  ];
+  const ext = isAudio ? 'mp3' : 'mp4';
+  const outTmpl = path.join(outDir, `${id}.%(ext)s`);
+  const argv = ['--no-playlist', '--no-warnings', '--quiet', '--no-progress'];
+  if (isAudio) {
+    argv.push('--extract-audio', '--audio-format', 'mp3', '--audio-quality', '0');
+  } else {
+    argv.push('--remux-video', 'mp4');
+  }
   if (ff) argv.push('--ffmpeg-location', path.dirname(ff));
-  argv.push(...cookies);
-  argv.push(url);
+  argv.push('-o', outTmpl, ...cookies, url);
 
   const attempts = opts.retries ?? 8;
   let lastLog = '';
   for (let attempt = 1; attempt <= attempts; attempt++) {
     // 清掉上次留下的半成品
     for (const f of fs.readdirSync(outDir)) {
-      if (f.startsWith(id) && /\.(part|mp4|webm|mkv|m4a|tmp)$/i.test(f)) {
+      if (f.startsWith(id) && /\.(part|mp4|webm|mkv|m4a|mp3|opus|tmp)$/i.test(f)) {
         try { fs.unlinkSync(path.join(outDir, f)); } catch { /* ignore */ }
       }
     }
@@ -99,9 +119,9 @@ export async function downloadUrl(url, outDir, opts = {}) {
       timeout: opts.timeoutMs || 600000,
       env: { ...process.env, PATH: [ff ? path.dirname(ff) : '', '/opt/homebrew/bin', process.env.PATH || ''].filter(Boolean).join(':') },
     });
-    const produced = path.join(outDir, `${id}.mp4`);
+    const produced = path.join(outDir, `${id}.${ext}`);
     if (r.ok && fs.existsSync(produced)) {
-      return { ok: true, file: produced, id };
+      return { ok: true, file: produced, id, ext, kind: isAudio ? 'audio' : 'video' };
     }
     lastLog = (r.stderr || r.stdout || '').slice(-600);
     if (attempt < attempts) await sleep(2000 * attempt); // 2s, 4s, 6s… 退避扛 CDN 抖动

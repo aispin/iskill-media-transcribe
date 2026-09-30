@@ -9,7 +9,7 @@
 //   one <url|本地路径>          端到端：取片→抽音→转写
 //   batch --list urls.txt       批量（每行一个 url 或本地路径）
 //   batch --dir ./videos        批量处理目录下所有音视频文件
-//   download <url>              仅取片（视频 URL → mp4）
+//   download <url>              仅取片泛化（视频 URL → mp4 / 音频 URL → mp3，不转写）
 //   audio <mp4|路径>            仅抽音轨/规整（→ mp3）
 //   transcribe <mp3>            仅转写（→ srt + json）
 //   caps                        引擎体检
@@ -46,6 +46,7 @@ function parseArgs(argv) {
     else if (a === '--engine') opts.engine = argv[++i];
     else if (a === '--retries') opts.retries = Number(argv[++i]) || 8;
     else if (a === '--spacing') opts.spacing = Number(argv[++i]) || 3000;
+    else if (a === '--list') opts.list = argv[++i];
     else if (a === '--force') opts.force = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else pos.push(a);
@@ -70,7 +71,14 @@ async function processOne(input, opts) {
     const dl = await downloadUrl(input, outDir, opts);
     if (!dl.ok) return { ok: false, reason: dl.reason };
     base = dl.id;
-    mp4 = dl.file;
+    if (dl.kind === 'audio') {
+      // 音频 URL 已泛化为 mp3；跳过重封装，转写阶段直接吃 mp3
+      const mp3 = path.join(outDir, `${base}.mp3`);
+      if (dl.file !== mp3) fs.copyFileSync(dl.file, mp3);
+      mp4 = null;
+    } else {
+      mp4 = dl.file;
+    }
   } else if (kind === 'video') {
     if (!exists(input)) return { ok: false, reason: `找不到本地视频：${input}` };
     base = path.basename(input).replace(/\.[^.]+$/, '');
@@ -145,8 +153,8 @@ async function main() {
 
   if (!cmd || opts.help) {
     console.log(`Usage: node ${path.basename(process.argv[1])} <command> [args] [options]\n`);
-    console.log('Commands: one <url|path> | batch --list <file> | batch --dir <dir> | download <url> | audio <file> | transcribe <mp3> | caps');
-    console.log('Options: --out ./out  --cookies <file>  --cookies-from-browser <b>  --weixin  --lang zh  --formats srt,json  --engine auto  --retries 8  --spacing 3000  --force');
+    console.log('Commands: one <url|path> | batch --list <file> | batch --dir <dir> | download <url> | download --list <urls.txt> | audio <file> | transcribe <mp3> | caps');
+    console.log('Options: --out ./out  --list <file>  --cookies <file>  --cookies-from-browser <b>  --weixin  --lang zh  --formats srt,json  --engine auto  --retries 8  --spacing 3000  --force');
     return;
   }
 
@@ -169,10 +177,27 @@ async function main() {
   }
 
   if (cmd === 'download') {
-    if (!pos[0]) return console.error('download requires url');
-    const r = await downloadUrl(pos[0], path.resolve(opts.out), opts);
-    if (r.ok) console.log(`ok ${r.file}`);
-    else { console.error(`FAIL ${r.reason}`); process.exitCode = 1; }
+    const urls = [];
+    if (opts.list) {
+      if (!exists(opts.list)) return console.error(`找不到列表文件：${opts.list}`);
+      urls.push(...fs.readFileSync(opts.list, 'utf8').split(/\r?\n/).map((s) => s.trim()).filter(Boolean));
+    } else if (pos[0]) {
+      urls.push(pos[0]);
+    } else {
+      return console.error('download requires a url, or --list <file>');
+    }
+    if (!urls.length) return console.error('download: 没有可下载的 URL');
+    const outDir = path.resolve(opts.out);
+    fs.mkdirSync(outDir, { recursive: true });
+    console.log(`下载（仅泛化，不转写）${urls.length} 个 URL → ${outDir}`);
+    let ok = 0;
+    for (let i = 0; i < urls.length; i++) {
+      if (i > 0) await sleep(opts.spacing);
+      const r = await downloadUrl(urls[i], outDir, opts);
+      if (r.ok) { ok++; console.log(`  [${i + 1}/${urls.length}] ok ${r.kind} → ${r.file}`); }
+      else console.log(`  [${i + 1}/${urls.length}] FAIL ${urls[i]} → ${r.reason}`);
+    }
+    console.log(`完成：${ok}/${urls.length} 成功`);
     return;
   }
 

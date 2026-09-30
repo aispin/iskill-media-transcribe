@@ -43,9 +43,10 @@ node scripts/video-transcribe.mjs caps
 ## 命令
 
 - `one <url|本地路径>`：端到端（取片→抽音→转写）。
+- `download <url>`：只下载并泛化、不转写（视频→mp4，音频→mp3）。等价于 `one` 跳过转写阶段，想要纯素材时用它，而不是加 `--download-only` 参数。
 - `batch --list <file>`：文件每行一个 url 或本地路径。
 - `batch --dir <dir>`：目录下所有音视频文件。
-- `download <url>`：仅取片（→ mp4）。
+- `download <url>`：仅取片泛化，**不转写**。视频 URL → mp4；音频 URL → mp3。`download --list <file>` 批量（每行一个 URL）。
 - `audio <文件>`：仅抽音轨/规整（→ mp3）。
 - `transcribe <mp3>`：仅转写（→ srt + json）。
 - `caps`：引擎体检。
@@ -55,7 +56,7 @@ node scripts/video-transcribe.mjs caps
 - `--out <dir>` 输出目录（默认 `./out`）
 - `--cookies <file>` netscape cookie 文件（需登录站点）
 - `--cookies-from-browser <chrome|firefox|…>` 临时取浏览器 cookie
-- `--weixin` **视频号专用一等公民**：读取元宝(tencent.com)会话 cookie（默认 `./weixin_cookies.txt` 或环境变量 `WEIXIN_COOKIE_FILE`）
+- `--weixin` **视频号专用一等公民**：读取元宝(tencent.com)会话 cookie（查找顺序：`$WEIXIN_COOKIE_FILE` → `~/.iskill-weixin-cookies.txt` 用户级推荐 → `./weixin_cookies.txt`）
 - `--lang <code>` 转写语言（默认 `zh`）
 - `--formats <csv>` 字幕格式（默认 `srt,json`；可 `srt,vtt,json,txt`）
 - `--engine <auto|voicebox|whisper|voicestudio>`
@@ -78,8 +79,8 @@ node scripts/video-transcribe.mjs caps
 
 ```bash
 # 1) Chrome 打开 https://yuanbao.tencent.com 用微信扫码登录
-# 2) 导出 cookie（netscape 格式）：
-yt-dlp --cookies-from-browser chrome --cookies ./weixin_cookies.txt https://example.com
+# 2) 导出 cookie（netscape 格式，推荐用户级路径、跨 agent 通用）：
+yt-dlp --cookies-from-browser chrome --cookies ~/.iskill-weixin-cookies.txt https://example.com
 # 3) 之后直接：
 node scripts/video-transcribe.mjs one "https://weixin.qq.com/sph/XXXX" --weixin
 ```
