@@ -68,7 +68,7 @@ node scripts/video-transcribe.mjs caps
 
 1. **yt-dlp**（含 `yt-dlp-patch` 以支持微信视频号）—— 放在 managed Python venv：
    `/Users/lv/.workbuddy/binaries/python/envs/default/bin/yt-dlp`
-2. **ffmpeg**（Homebrew：`/opt/homebrew/bin/ffmpeg`）
+2. **ffmpeg**（brew 安装即可：Apple Silicon `/opt/homebrew/bin/ffmpeg`、Intel `/usr/local/bin/ffmpeg`，或 PATH 内任意 ffmpeg；脚本探测链=PATH → 两条 brew 路径）
 3. **VoiceBox** 本地 Whisper 应用（默认 `http://127.0.0.1:17493`，主转写引擎，中文最佳）
 4. **whisper CLI**（兜底；`mlx-whisper` 在 Apple Silicon 上最快、中文好）—— 可选
 5. Node 22（managed）
