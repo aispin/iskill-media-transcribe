@@ -37,16 +37,19 @@ window.PROMO = {
         meta2: "视频号一等公民",
         meta3: "MIT 许可"
       },
-      terminal: {
-        title: "zsh — iskill-media-transcribe",
-        lines: [
-          [{ t: "$ ", c: "p" }, { t: "node scripts/video-transcribe.mjs caps", c: "k" }],
-          [{ t: "yt-dlp      : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "~/.workbuddy/binaries/python/envs/default/bin/yt-dlp", c: "s" }],
-          [{ t: "ffmpeg      : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "/opt/homebrew/bin/ffmpeg", c: "s" }],
-          [{ t: "VoiceBox    : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "http://127.0.0.1:17493 (ready)", c: "s" }],
-          [{ t: "结论：核心链路可用（下载 + 抽音轨 + 转写齐备）。", c: "s" }]
+      chat: {
+        title: "AI Agent · 对话现场",
+        status: "在线",
+        userLabel: "你",
+        agentLabel: "AI",
+        messages: [
+          { role: "user", text: "把这条视频号链接转成带时间戳的字幕" },
+          { role: "agent", text: "先体检 yt-dlp / ffmpeg / 转写引擎，缺什么告诉你；视频号需要元宝 cookie，导一次就能长期复用。转写跑本地 VoiceBox，音频不外传。", tag: "已读 视频号配方" },
+          { role: "user", text: "产物有哪些？" },
+          { role: "agent", text: "mp3 音轨 + srt + json 三种，时间轴对齐；要剪辑我就把成果交给下游。" }
         ]
       },
+
 
       stats: [
         { value: "4", label: "产出文件 / 条", note: "视频：mp4 + mp3 + srt + json（纯音频无 mp4）" },
@@ -149,16 +152,19 @@ window.PROMO = {
         meta2: "WeChat Channels first-class",
         meta3: "MIT licensed"
       },
-      terminal: {
-        title: "zsh — iskill-media-transcribe",
-        lines: [
-          [{ t: "$ ", c: "p" }, { t: "node scripts/video-transcribe.mjs caps", c: "k" }],
-          [{ t: "yt-dlp      : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "~/.workbuddy/binaries/python/envs/default/bin/yt-dlp", c: "s" }],
-          [{ t: "ffmpeg      : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "/opt/homebrew/bin/ffmpeg", c: "s" }],
-          [{ t: "VoiceBox    : ", c: "s" }, { t: "✓ ", c: "p" }, { t: "http://127.0.0.1:17493 (ready)", c: "s" }],
-          [{ t: "conclusion: core pipeline ready (download + audio + transcribe).", c: "s" }]
+      chat: {
+        title: "AI Agent · live session",
+        status: "online",
+        userLabel: "You",
+        agentLabel: "AI",
+        messages: [
+          { role: "user", text: "Transcribe this WeChat Channels link into timestamped subtitles" },
+          { role: "agent", text: "I check yt-dlp / ffmpeg / the transcription engine first and tell you what's missing. Channels needs a Yuanbao cookie — export once, reuse forever. Transcription runs locally on VoiceBox; audio never leaves the machine.", tag: "read Channels recipe" },
+          { role: "user", text: "What do I get?" },
+          { role: "agent", text: "Three files: mp3 audio, srt and json, with aligned timelines. Say the word and I'll hand them to the clipper." }
         ]
       },
+
 
       stats: [
         { value: "4", label: "output files per item", note: "video: mp4 + mp3 + srt + json (audio-only skips mp4)" },
