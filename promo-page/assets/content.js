@@ -101,13 +101,14 @@ window.PROMO = {
       steps: {
         eyebrow: "上手",
         title: "三步跑起来",
-        sub: "",
+        sub: "命令由 agent 跑，你只说要什么、看结果。",
         items: [
           { title: "交给 AI 装", desc: "把这句话粘进对话框，agent 会自己拉代码、读文档，再告诉你用法。", codeKey: "install" },
-          { title: "先做能力体检", desc: "看 yt-dlp / ffmpeg / VoiceBox / whisper CLI 哪些就绪，缺什么按 README 补。", codeName: "shell", code: "node scripts/video-transcribe.mjs caps" },
-          { title: "转一条试试", desc: "本地视频一行跑完；换成本地音频就只出 mp3 + srt + json。", codeName: "shell", code: "node scripts/video-transcribe.mjs one ./lecture.mov --out ./out" }
+          { title: "把链接或文件给它", desc: "链接或本地文件都行；依赖（yt-dlp / ffmpeg / 转写引擎）它会先体检，缺什么告诉你。", codeName: "prompt", code: "把这条视频号链接转成带时间戳的字幕，音频单独存一份。" },
+          { title: "抽两处对时间轴", desc: "产物是 mp3 + srt + json，你随机抽两句看看字幕对没对上；要接着剪辑就让它把成果交给下游。" }
         ]
       },
+
 
       faq: {
         eyebrow: "问答",
@@ -212,13 +213,14 @@ window.PROMO = {
       steps: {
         eyebrow: "Get started",
         title: "Up and running in three steps",
-        sub: "",
+        sub: "The agent runs the commands. You say what you want and check the result.",
         items: [
           { title: "Let your agent install it", desc: "Paste the line into the chat — it clones the repo, reads the docs, and tells you how to use it.", codeKey: "install" },
-          { title: "Run a capability check", desc: "See which of yt-dlp / ffmpeg / VoiceBox / whisper CLI are ready, and install what is missing per the README.", codeName: "shell", code: "node scripts/video-transcribe.mjs caps" },
-          { title: "Transcribe one file", desc: "A local video in one line; swap in local audio and you get mp3 + srt + json only.", codeName: "shell", code: "node scripts/video-transcribe.mjs one ./lecture.mov --out ./out" }
+          { title: "Give it a link or a file", desc: "Either works. It checks yt-dlp / ffmpeg / the transcription engine first and tells you what's missing.", codeName: "prompt", code: "Transcribe this WeChat Channels link into timestamped subtitles, and keep the audio separately." },
+          { title: "Spot-check the timeline", desc: "You get mp3 + srt + json — skim two lines to see if the timing lines up. Cutting a video next? Let it hand the result downstream." }
         ]
       },
+
 
       faq: {
         eyebrow: "FAQ",
