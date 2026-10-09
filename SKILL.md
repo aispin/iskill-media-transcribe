@@ -92,3 +92,15 @@ cookie 过期后重跑第 2 步即可。
 - **大文件下载需有网络、且不被沙箱掐断**：在本机直接跑即可；若在 WorkBuddy 自动化里跑，需允许出网（大文件下载可能被隔离沙箱中断，留 `.part`）。
 - 默认字幕 `srt + json`。若引擎只回纯文本（无分句时间戳），`srt` 退化为单块时间轴；装 `whisper CLI` 可得精确逐句时间戳。
 - 文件名一律用 `id/名` 短名，避免长标题触发 macOS 255 字节文件名上限。
+
+## 依赖同步
+
+本仓库 `promo-page/assets/{app.js,style.css,icons.js}` 是 [iskill-promo-page](https://github.com/aispin/iskill-promo-page)
+模板引擎的 vendored 副本（锁定版本见 `package.json` 的 `iskillDeps`），**不要手改**——
+去真源仓库改并升 `@iskill-version`，再用 iskill-dep-sync 同步回来（本机无该工具时按下面自举）：
+
+```bash
+T="$HOME/.workbuddy/skills/iskill-dep-sync/scripts/skill-deps.mjs"
+[ -f "$T" ] || { TMP="$(mktemp -d)"; curl -fsSL "https://raw.githubusercontent.com/aispin/iskill-dep-sync/HEAD/scripts/skill-deps.mjs" -o "$TMP/skill-deps.mjs"; T="$TMP/skill-deps.mjs"; }
+node "$T" check "$(pwd)"     # 漂移检测；node "$T" sync "$(pwd)" 恢复/升级；node "$T" env "$(pwd)" 冷启动自检
+```
