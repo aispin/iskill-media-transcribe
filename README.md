@@ -80,3 +80,5 @@ node scripts/video-transcribe.mjs one "https://weixin.qq.com/sph/XXXX" --weixin
 - 视频号元宝桥接偶发 400 → 8 次指数退避 + 批量 3s 错峰。
 - 产物只认最终扩展名（`.mp4`/`.mp3`），不靠前缀误认残留。
 - VoiceBox 大文件上传不稳 → 走 MCP `audio_path` 直读本地文件。
+
+> 依赖同步：本仓库含 iskill 共享真源的 vendored 副本（清单见 `package.json` 的 `iskillDeps`），**不要手改**。使用前请同时安装 iskill-dep-sync：对 agent 说「请帮我安装 Skill：aispin/iskill-dep-sync」；用法见 SKILL.md「依赖同步」节。
